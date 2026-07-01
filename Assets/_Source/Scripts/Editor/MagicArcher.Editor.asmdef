@@ -1,0 +1,19 @@
+{
+    "name": "MagicArcher.Editor",
+    "rootNamespace": "MagicArcher.Editor",
+    "references": [
+        "MagicArcher",
+        "Zenject"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
