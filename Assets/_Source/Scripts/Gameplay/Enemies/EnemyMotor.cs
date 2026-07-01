@@ -36,15 +36,10 @@ namespace MagicArcher.Gameplay.Enemies
         }
 
         public void Begin(EnemyPathView path)
-
         {
-
             _path = path;
-
-            _waypointIndex = 0;
-
+            _waypointIndex = ResolveStartWaypointIndex(path, transform.position);
             _moving = path != null && path.WaypointCount > 0;
-
         }
 
 
@@ -61,13 +56,10 @@ namespace MagicArcher.Gameplay.Enemies
 
         void Update()
         {
-            if (IsCombatPaused())
-            {
-                _moving = false;
-                return;
-            }
-
             if (!_moving || _path == null)
+                return;
+
+            if (IsCombatPaused())
                 return;
 
 
@@ -118,6 +110,29 @@ namespace MagicArcher.Gameplay.Enemies
         bool IsCombatPaused()
         {
             return _phases != null && _phases.IsTutorialCombatPaused;
+        }
+
+        static int ResolveStartWaypointIndex(EnemyPathView path, Vector3 position)
+        {
+            if (path == null || path.WaypointCount <= 1)
+                return 0;
+
+            var start = path.GetWaypointPosition(0);
+            var end = path.GetWaypointPosition(1);
+            var segment = end - start;
+            segment.y = 0f;
+
+            if (segment.sqrMagnitude < 0.0001f)
+                return 0;
+
+            var offset = position - start;
+            offset.y = 0f;
+            var progress = Vector3.Dot(offset, segment.normalized);
+
+            if (progress <= 0.05f)
+                return 0;
+
+            return 1;
         }
     }
 }

@@ -109,7 +109,7 @@ namespace MagicArcher.Gameplay.Combat
 
                 var position = EnemySpawnLayout.GetPrewarmPosition(_path, i, spacing);
 
-                SpawnQueuedOrc(prefab, position, i == 0);
+                SpawnQueuedOrc(prefab, position, true);
 
             }
 

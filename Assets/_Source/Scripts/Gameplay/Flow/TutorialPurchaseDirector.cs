@@ -9,9 +9,16 @@ namespace MagicArcher.Gameplay.Flow
 {
     public sealed class TutorialPurchaseDirector : MonoBehaviour
     {
+        const int TutorialBuyButtonSiblingIndex = 1;
+
         UnitPurchaseService _purchase;
         CombatUiRefs _ui;
         GamePhaseService _phases;
+
+        BuyUnitButtonView _activeBuyButton;
+        Transform _buyButtonOriginalParent;
+        int _buyButtonOriginalSiblingIndex;
+        bool _buyButtonPlacementSaved;
 
         [Inject]
         void Construct(
@@ -40,9 +47,12 @@ namespace MagicArcher.Gameplay.Flow
                 return;
             }
 
+            _activeBuyButton = buyButton;
             _purchase.SetCost(GameConstants.TutorialBuyUnitCost);
             buyButton.Clicked += OnBuyClicked;
             buyButton.Show(GameConstants.TutorialBuyUnitCost);
+
+            ReparentBuyButtonForTutorial(buyButton, overlay);
 
             var buttonRect = buyButton.transform as RectTransform;
             overlay.Show(buttonRect);
@@ -79,16 +89,46 @@ namespace MagicArcher.Gameplay.Flow
 
         public void End()
         {
-            var buyButton = ResolveBuyButton();
+            var buyButton = _activeBuyButton != null ? _activeBuyButton : ResolveBuyButton();
             var overlay = ResolveOverlay();
 
             if (buyButton != null)
             {
                 buyButton.Clicked -= OnBuyClicked;
                 buyButton.Hide();
+                RestoreBuyButtonParent(buyButton);
             }
 
+            _activeBuyButton = null;
             overlay?.Hide();
+        }
+
+        void ReparentBuyButtonForTutorial(BuyUnitButtonView buyButton, TutorialOverlayView overlay)
+        {
+            if (buyButton == null || overlay == null)
+                return;
+
+            var buttonTransform = buyButton.transform;
+            if (!_buyButtonPlacementSaved)
+            {
+                _buyButtonOriginalParent = buttonTransform.parent;
+                _buyButtonOriginalSiblingIndex = buttonTransform.GetSiblingIndex();
+                _buyButtonPlacementSaved = true;
+            }
+
+            buttonTransform.SetParent(overlay.transform, true);
+            buttonTransform.SetSiblingIndex(TutorialBuyButtonSiblingIndex);
+        }
+
+        void RestoreBuyButtonParent(BuyUnitButtonView buyButton)
+        {
+            if (buyButton == null || !_buyButtonPlacementSaved || _buyButtonOriginalParent == null)
+                return;
+
+            var buttonTransform = buyButton.transform;
+            buttonTransform.SetParent(_buyButtonOriginalParent, true);
+            buttonTransform.SetSiblingIndex(_buyButtonOriginalSiblingIndex);
+            _buyButtonPlacementSaved = false;
         }
 
         void OnBuyClicked()
