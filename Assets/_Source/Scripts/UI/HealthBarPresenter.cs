@@ -81,6 +81,12 @@ namespace MagicArcher.UI
 
         void OnHealthChanged()
         {
+            if (_provider != null && _provider.NormalizedHealth <= 0f)
+            {
+                _service?.ReleaseView(this);
+                return;
+            }
+
             _service?.RefreshPresenter(this);
         }
     }

@@ -6,51 +6,65 @@ namespace MagicArcher.Gameplay.Combat
 {
     public sealed class ProjectilePool
     {
-        readonly ProjectileView _prefab;
         readonly Transform _root;
         readonly GamePhaseService _phases;
-        readonly List<ProjectileView> _pool = new();
+        readonly Dictionary<ProjectileView, List<ProjectileView>> _pools = new();
 
-        public ProjectilePool(ProjectileView prefab, Transform root, GamePhaseService phases)
+        public ProjectilePool(Transform root, GamePhaseService phases)
         {
-            _prefab = prefab;
             _root = root;
             _phases = phases;
         }
 
-        public void Warmup(int count)
+        public void Warmup(ProjectileView prefab, int count)
         {
-            for (var i = _pool.Count; i < count; i++)
-                CreateInstance();
-        }
-
-        public void Launch(Vector3 from, ICombatTarget target, float damage)
-        {
-            if (_prefab == null || target == null)
+            if (prefab == null || count <= 0)
                 return;
 
-            var projectile = Rent();
-            projectile.Launch(from, target, damage);
+            var pool = GetOrCreatePool(prefab);
+            while (pool.Count < count)
+                pool.Add(CreateInstance(prefab));
         }
 
-        ProjectileView Rent()
+        public void Launch(ProjectileView prefab, Vector3 from, ICombatTarget target, float damage)
         {
-            for (var i = 0; i < _pool.Count; i++)
+            if (prefab == null || target == null)
+                return;
+
+            Rent(prefab).Launch(from, target, damage);
+        }
+
+        ProjectileView Rent(ProjectileView prefab)
+        {
+            var pool = GetOrCreatePool(prefab);
+            for (var i = 0; i < pool.Count; i++)
             {
-                var item = _pool[i];
-                if (!item.gameObject.activeSelf)
+                var item = pool[i];
+                if (item != null && !item.gameObject.activeSelf)
                     return item;
             }
 
-            return CreateInstance();
+            var instance = CreateInstance(prefab);
+            pool.Add(instance);
+            return instance;
         }
 
-        ProjectileView CreateInstance()
+        List<ProjectileView> GetOrCreatePool(ProjectileView prefab)
         {
-            var instance = Object.Instantiate(_prefab, _root);
+            if (!_pools.TryGetValue(prefab, out var pool))
+            {
+                pool = new List<ProjectileView>();
+                _pools[prefab] = pool;
+            }
+
+            return pool;
+        }
+
+        ProjectileView CreateInstance(ProjectileView prefab)
+        {
+            var instance = Object.Instantiate(prefab, _root);
             instance.Configure(_phases);
             instance.gameObject.SetActive(false);
-            _pool.Add(instance);
             return instance;
         }
     }

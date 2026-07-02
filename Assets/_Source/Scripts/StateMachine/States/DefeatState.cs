@@ -9,15 +9,18 @@ namespace MagicArcher.StateMachine.States
     {
         readonly ICtaService _ctaService;
         readonly IAudioService _audio;
+        readonly CombatUiRefs _ui;
         readonly EndgameOverlayView _overlay;
 
         public DefeatState(
             ICtaService ctaService,
             [Zenject.Inject(Optional = true)] IAudioService audio = null,
+            [Zenject.Inject(Optional = true)] CombatUiRefs ui = null,
             [Zenject.Inject(Optional = true)] EndgameOverlayView overlay = null)
         {
             _ctaService = ctaService;
             _audio = audio;
+            _ui = ui;
             _overlay = overlay;
         }
 
@@ -25,6 +28,10 @@ namespace MagicArcher.StateMachine.States
 
         public override void Enter()
         {
+            _ui?.TutorialPurchasePanel?.Hide();
+            _ui?.TutorialOverlay?.Hide();
+            _ui?.BuyUnitButton?.Hide();
+
             _audio?.PlayDefeat();
             ResolveOverlay()?.ShowDefeat();
             _ctaService.Activate();
@@ -32,6 +39,9 @@ namespace MagicArcher.StateMachine.States
 
         EndgameOverlayView ResolveOverlay()
         {
+            if (_ui != null && _ui.EndgameOverlay != null)
+                return _ui.EndgameOverlay;
+
             if (_overlay != null)
                 return _overlay;
 

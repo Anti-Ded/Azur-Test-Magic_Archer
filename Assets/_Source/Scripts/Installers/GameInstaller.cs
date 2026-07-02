@@ -30,6 +30,11 @@ namespace MagicArcher.Installers
             Container.Bind<BossEnemyConfig>().FromMethod(ResolveBossEnemyConfig).AsSingle();
             Container.Bind<RegularUnitConfig>().FromMethod(ResolveRegularUnitConfig).AsSingle();
             Container.Bind<UpgradedUnitConfig>().FromMethod(ResolveUpgradedUnitConfig).AsSingle();
+            Container.Bind<UnitConfigCatalog>()
+                .FromMethod(_ => new UnitConfigCatalog(
+                    ResolveRegularUnitConfig(),
+                    ResolveUpgradedUnitConfig()))
+                .AsSingle();
             Container.Bind<ICtaService>().To<CtaService>().AsSingle();
             Container.Bind<IAudioService>()
                 .FromMethod(ctx =>
@@ -78,17 +83,20 @@ namespace MagicArcher.Installers
             Container.Bind<CoinFlyVfxService>()
                 .FromMethod(ctx =>
                 {
-                    var refs = ctx.Container.Resolve<CombatSceneRefs>();
-                    var poolRoot = refs.CoinFlyPoolRoot;
+                    var ui = ctx.Container.Resolve<CombatUiRefs>();
+                    var poolRoot = ui != null ? ui.CoinFlyPoolRoot : null;
                     if (poolRoot == null)
                     {
                         var canvas = Object.FindFirstObjectByType<Canvas>();
                         poolRoot = canvas != null ? canvas.transform as RectTransform : null;
                     }
 
-                    return new CoinFlyVfxService(refs.CoinFlyPrefab, poolRoot, refs);
+                    var prefab = ui != null ? ui.CoinFlyPrefab : null;
+                    var coinHudTarget = ui != null ? ui.CoinHudTarget : null;
+                    return new CoinFlyVfxService(prefab, poolRoot, coinHudTarget);
                 })
                 .AsSingle();
+            Container.Bind<EnemyKillRewardService>().AsSingle();
             Container.Bind<CtaFeedbackView>().FromMethod(_ =>
             {
                 var ui = Object.FindFirstObjectByType<CombatUiRefs>(FindObjectsInactive.Include);
@@ -172,20 +180,16 @@ namespace MagicArcher.Installers
                     var root = refs.ProjectilesRoot != null
                         ? refs.ProjectilesRoot
                         : ctx.Container.Resolve<LevelRoot>().transform;
-                    return new ProjectilePool(refs.ProjectilePrefab, root, phases);
+                    return new ProjectilePool(root, phases);
                 })
                 .AsSingle();
             Container.Bind<EnemyPool>()
                 .FromMethod(ctx =>
                 {
-                    var refs = ctx.Container.Resolve<CombatSceneRefs>();
                     var regular = ctx.Container.Resolve<RegularEnemyConfig>();
                     var level = ctx.Container.Resolve<LevelRoot>();
                     var root = level.EnemiesRoot != null ? level.EnemiesRoot : level.transform;
-                    var prefab = regular.Prefab != null
-                        ? regular.Prefab
-                        : refs.OrcPrefab;
-                    return new EnemyPool(ctx.Container, prefab, root);
+                    return new EnemyPool(ctx.Container, regular.Prefab, root);
                 })
                 .AsSingle();
 
@@ -207,7 +211,7 @@ namespace MagicArcher.Installers
             if (loaded != null)
                 return loaded;
 
-            Debug.LogError("GameInstaller: RegularEnemyConfig is missing. Run Magic Archer → Ensure Config Assets.");
+            Debug.LogError("GameInstaller: RegularEnemyConfig is missing. Assign it on GameInstaller or add RegularEnemyConfig to Resources.");
             return ScriptableObject.CreateInstance<RegularEnemyConfig>();
         }
 
@@ -220,7 +224,7 @@ namespace MagicArcher.Installers
             if (loaded != null)
                 return loaded;
 
-            Debug.LogError("GameInstaller: BossEnemyConfig is missing. Run Magic Archer → Ensure Config Assets.");
+            Debug.LogError("GameInstaller: BossEnemyConfig is missing. Assign it on GameInstaller or add BossEnemyConfig to Resources.");
             return ScriptableObject.CreateInstance<BossEnemyConfig>();
         }
 
@@ -233,7 +237,7 @@ namespace MagicArcher.Installers
             if (loaded != null)
                 return loaded;
 
-            Debug.LogError("GameInstaller: RegularUnitConfig is missing. Run Magic Archer → Ensure Config Assets.");
+            Debug.LogError("GameInstaller: RegularUnitConfig is missing. Assign it on GameInstaller or add RegularUnitConfig to Resources.");
             return ScriptableObject.CreateInstance<RegularUnitConfig>();
         }
 
@@ -246,7 +250,7 @@ namespace MagicArcher.Installers
             if (loaded != null)
                 return loaded;
 
-            Debug.LogError("GameInstaller: UpgradedUnitConfig is missing. Run Magic Archer → Ensure Config Assets.");
+            Debug.LogError("GameInstaller: UpgradedUnitConfig is missing. Assign it on GameInstaller or add UpgradedUnitConfig to Resources.");
             return ScriptableObject.CreateInstance<UpgradedUnitConfig>();
         }
     }

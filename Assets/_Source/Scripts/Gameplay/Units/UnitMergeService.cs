@@ -1,6 +1,6 @@
 using System;
 using MagicArcher.Core.Audio;
-using MagicArcher.Gameplay.Combat;
+using MagicArcher.Core.Config;
 using MagicArcher.Gameplay.Grid;
 using MagicArcher.Gameplay.Level;
 using UnityEngine;
@@ -13,7 +13,7 @@ namespace MagicArcher.Gameplay.Units
         readonly DiContainer _container;
         readonly LevelRoot _level;
         readonly IGridService _grid;
-        readonly CombatSceneRefs _refs;
+        readonly UnitConfigCatalog _unitConfigs;
         readonly MergeVfx _mergeVfx;
         readonly IAudioService _audio;
 
@@ -24,14 +24,14 @@ namespace MagicArcher.Gameplay.Units
             DiContainer container,
             LevelRoot level,
             IGridService grid,
-            CombatSceneRefs refs,
+            UnitConfigCatalog unitConfigs,
             MergeVfx mergeVfx,
             [Inject(Optional = true)] IAudioService audio = null)
         {
             _container = container;
             _level = level;
             _grid = grid;
-            _refs = refs;
+            _unitConfigs = unitConfigs;
             _mergeVfx = mergeVfx;
             _audio = audio;
         }
@@ -41,7 +41,10 @@ namespace MagicArcher.Gameplay.Units
             if (source == null || target == null || source == target)
                 return false;
 
-            return !source.IsUpgraded && !target.IsUpgraded;
+            if (source.Config == null || target.Config == null || _unitConfigs == null)
+                return false;
+
+            return _unitConfigs.ResolveMergeResult(source.Config, target.Config) != null;
         }
 
         public bool TryMerge(UnitView source, int targetX, int targetY)
@@ -50,6 +53,13 @@ namespace MagicArcher.Gameplay.Units
                 return false;
 
             if (!CanMerge(source, target))
+                return false;
+
+            var resultConfig = _unitConfigs.ResolveMergeResult(source.Config, target.Config);
+            var resultPrefab = resultConfig?.Prefab != null
+                ? resultConfig.Prefab.GetComponent<UnitView>()
+                : null;
+            if (resultConfig == null || resultPrefab == null || _level.UnitsRoot == null)
                 return false;
 
             var mergeX = targetX;
@@ -62,15 +72,15 @@ namespace MagicArcher.Gameplay.Units
             UnityEngine.Object.Destroy(source.gameObject);
             UnityEngine.Object.Destroy(target.gameObject);
 
-            var upgraded = _container.InstantiatePrefabForComponent<UnitView>(
-                _refs.ArcherPrefab,
+            var merged = _container.InstantiatePrefabForComponent<UnitView>(
+                resultPrefab,
                 _level.UnitsRoot);
 
-            upgraded.SetUpgraded(true);
-            _grid.TryPlace(mergeX, mergeY, upgraded);
-            _mergeVfx?.Play(upgraded.transform);
+            merged.ApplyConfig(resultConfig);
+            _grid.TryPlace(mergeX, mergeY, merged);
+            _mergeVfx?.Play(merged.transform);
             _audio?.PlayMerge();
-            UnitMerged?.Invoke(upgraded);
+            UnitMerged?.Invoke(merged);
             return true;
         }
     }

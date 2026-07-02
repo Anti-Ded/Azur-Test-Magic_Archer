@@ -28,7 +28,7 @@ namespace MagicArcher.UI
             if (prefab == null)
             {
                 Debug.LogWarning(
-                    "HealthBarUi: prefab is missing. Run Magic Archer → Setup Combat Scene " +
+                    "HealthBarUi: prefab is missing. Assign HealthBarPrefab on CombatUiRefs " +
                     "or place HealthBarUiSettings in Resources.");
             }
         }

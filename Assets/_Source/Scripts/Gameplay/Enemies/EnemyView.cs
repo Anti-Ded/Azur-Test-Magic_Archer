@@ -3,6 +3,8 @@ using System.Collections;
 using MagicArcher.Core.Audio;
 using MagicArcher.Core.Config;
 using MagicArcher.Gameplay.Combat;
+using MagicArcher.Gameplay.Flow;
+using MagicArcher.Gameplay.Grid;
 using MagicArcher.UI;
 using UnityEngine;
 using Zenject;
@@ -20,8 +22,12 @@ namespace MagicArcher.Gameplay.Enemies
         IAudioService _audio;
         RegularEnemyConfig _regular;
         BossEnemyConfig _boss;
+        IGridService _grid;
+        CombatThreatMonitor _threat;
+        GamePhaseService _phases;
         Animator _animator;
         EnemyPool _pool;
+        EnemyMeleeContact _melee;
 
         public Transform AimPoint => _health != null ? _health.GetAimPoint() : transform;
         public bool IsAlive => _health != null && _health.IsAlive;
@@ -38,19 +44,39 @@ namespace MagicArcher.Gameplay.Enemies
             CombatTargetRegistry registry,
             RegularEnemyConfig regular,
             BossEnemyConfig boss,
+            IGridService grid,
+            CombatThreatMonitor threat,
+            GamePhaseService phases,
             [Inject(Optional = true)] EnemyPool pool = null,
             [Inject(Optional = true)] IAudioService audio = null)
         {
             _registry = registry;
             _regular = regular;
             _boss = boss;
+            _grid = grid;
+            _threat = threat;
+            _phases = phases;
             _pool = pool;
             _audio = audio;
+
+            EnsureMeleeComponent();
+            _melee.Initialize(this, _motor, _regular, _boss, _grid, _threat, _phases);
         }
 
         void Awake()
         {
             _animator = GetComponentInChildren<Animator>();
+            EnsureMeleeComponent();
+        }
+
+        void EnsureMeleeComponent()
+        {
+            if (_melee != null)
+                return;
+
+            _melee = GetComponent<EnemyMeleeContact>();
+            if (_melee == null)
+                _melee = gameObject.AddComponent<EnemyMeleeContact>();
         }
 
         void OnEnable()
@@ -108,6 +134,11 @@ namespace MagicArcher.Gameplay.Enemies
                 _motor.Begin(path);
             else
                 _motor?.Stop();
+
+            var triggerRadius = isBoss
+                ? _boss != null ? _boss.AttackTriggerRadius : 2.4f
+                : _regular != null ? _regular.AttackTriggerRadius : 1.8f;
+            _melee?.Configure(path, isBoss, triggerRadius);
         }
 
         void OnHealthDied(IDamageable _)

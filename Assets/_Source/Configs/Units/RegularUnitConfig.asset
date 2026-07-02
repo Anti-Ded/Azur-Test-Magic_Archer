@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: RegularUnitConfig
   m_EditorClassIdentifier: 
   _prefab: {fileID: 2597416972443981881, guid: e3325ee03ce07f846b3c2138f44d94e9, type: 3}
-  _maxHealth: 150
+  _maxHealth: 10
   _damage: 50
-  _attackCooldown: 1.1
+  _attackCooldown: 2
   _attackRange: 25
+  _projectilePrefab: {fileID: 8336681996169202335, guid: 4d5cad342a6b20445aa5bbdb0f074b02, type: 3}
+  _mergeChildren: []

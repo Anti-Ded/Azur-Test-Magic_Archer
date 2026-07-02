@@ -1,4 +1,3 @@
-using MagicArcher.Core;
 using MagicArcher.Gameplay.Combat;
 using MagicArcher.Gameplay.Economy;
 using MagicArcher.Gameplay.Enemies;
@@ -13,8 +12,7 @@ namespace MagicArcher.Gameplay.Flow
         const int OrcsToKill = 2;
 
         EnemyWaveController _wave;
-        IEconomyService _economy;
-        CoinFlyVfxService _coinFly;
+        EnemyKillRewardService _killRewards;
         GamePhaseService _phases;
 
         int _killsRemaining;
@@ -23,14 +21,12 @@ namespace MagicArcher.Gameplay.Flow
         [Inject]
         void Construct(
             EnemyWaveController wave,
-            IEconomyService economy,
-            GamePhaseService phases,
-            CoinFlyVfxService coinFly)
+            EnemyKillRewardService killRewards,
+            GamePhaseService phases)
         {
             _wave = wave;
-            _economy = economy;
+            _killRewards = killRewards;
             _phases = phases;
-            _coinFly = coinFly;
         }
 
         public void Begin()
@@ -49,11 +45,10 @@ namespace MagicArcher.Gameplay.Flow
 
         void OnOrcDied(EnemyView orc)
         {
-            if (!_active)
+            if (!_active || orc == null)
                 return;
 
-            _coinFly.Play(orc.transform.position, () =>
-                _economy.AddCoins(GameConstants.CoinsPerOrcKill));
+            _killRewards.Grant(orc);
 
             _killsRemaining--;
             if (_killsRemaining > 0)

@@ -16,8 +16,6 @@ namespace MagicArcher.Gameplay.Flow
         readonly UnitDragController _drag;
         readonly GamePhaseService _phases;
         readonly GameStateMachine _stateMachine;
-        readonly RegularEnemyConfig _regular;
-        readonly BossEnemyConfig _boss;
 
         bool _defeatHandled;
 
@@ -28,8 +26,6 @@ namespace MagicArcher.Gameplay.Flow
             EnemyPool enemyPool,
             GamePhaseService phases,
             GameStateMachine stateMachine,
-            RegularEnemyConfig regular,
-            BossEnemyConfig boss,
             [Inject(Optional = true)] UnitDragController drag = null)
         {
             _wave = wave;
@@ -37,8 +33,6 @@ namespace MagicArcher.Gameplay.Flow
             _enemyPool = enemyPool;
             _phases = phases;
             _stateMachine = stateMachine;
-            _regular = regular;
-            _boss = boss;
             _drag = drag;
         }
 
@@ -47,20 +41,14 @@ namespace MagicArcher.Gameplay.Flow
             _wave.EnemyReachedGrid += OnEnemyReachedGrid;
         }
 
-        void OnEnemyReachedGrid(EnemyView enemy)
+        public void TryHandleDefeat()
         {
-            if (_defeatHandled || enemy == null)
+            if (_defeatHandled)
                 return;
 
             var phase = _stateMachine.CurrentPhase;
             if (phase is GamePhase.Defeat or GamePhase.Victory or GamePhase.Cta)
                 return;
-
-            enemy.Motor?.Stop();
-            var damage = ResolveContactDamage(enemy);
-            DamageAllUnits(damage);
-            RemoveDeadUnits();
-            _enemyPool?.Return(enemy);
 
             if (HasAliveUnit())
                 return;
@@ -70,42 +58,17 @@ namespace MagicArcher.Gameplay.Flow
             _phases.ChangePhase(GamePhase.Defeat);
         }
 
-        float ResolveContactDamage(EnemyView enemy)
+        void OnEnemyReachedGrid(EnemyView enemy)
         {
-            if (enemy.Health != null && enemy.Health.IsBoss && _boss != null)
-                return _boss.GridContactDamage;
+            if (enemy == null)
+                return;
 
-            return _regular != null ? _regular.GridContactDamage : 50f;
-        }
+            var phase = _stateMachine.CurrentPhase;
+            if (phase is GamePhase.Defeat or GamePhase.Victory or GamePhase.Cta)
+                return;
 
-        void DamageAllUnits(float damage)
-        {
-            _grid.ForEachUnit(unit =>
-            {
-                if (unit?.Health == null || !unit.Health.IsAlive)
-                    return;
-
-                unit.Health.TakeDamage(damage);
-            });
-        }
-
-        void RemoveDeadUnits()
-        {
-            for (var y = 0; y < _grid.Height; y++)
-            {
-                for (var x = 0; x < _grid.Width; x++)
-                {
-                    if (!_grid.TryGetUnit(x, y, out var unit) || unit == null)
-                        continue;
-
-                    if (unit.Health != null && unit.Health.IsAlive)
-                        continue;
-
-                    _grid.TryRemove(x, y, out _);
-                    if (unit != null)
-                        UnityEngine.Object.Destroy(unit.gameObject);
-                }
-            }
+            enemy.Motor?.Stop();
+            _enemyPool?.Return(enemy);
         }
 
         bool HasAliveUnit()

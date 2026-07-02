@@ -5,7 +5,6 @@ namespace MagicArcher.Core
         public const int GridWidth = 5;
         public const int GridHeight = 4;
 
-        public const int CoinsPerOrcKill = 10;
         public const int TutorialBuyUnitCost = 10;
         public const int InitialBuyUnitCost = 15;
         public const int BuyUnitCostStep = 5;

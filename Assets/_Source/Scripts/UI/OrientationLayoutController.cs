@@ -13,6 +13,7 @@ namespace MagicArcher.UI
         [SerializeField] RectTransform _coinHudTarget;
         [SerializeField] RectTransform _buyUnitButton;
         [SerializeField] TutorialOverlayView _tutorialOverlay;
+        [SerializeField] TutorialPurchasePanelView _tutorialPurchasePanel;
 
         [SerializeField] RectTransformLayoutPreset _coinHudLandscape =
             RectTransformLayoutPreset.TopRight(40f, 40f, new Vector2(160f, 60f));
@@ -39,6 +40,9 @@ namespace MagicArcher.UI
             if (_tutorialOverlay == null)
                 _tutorialOverlay = GetComponentInChildren<TutorialOverlayView>(true);
 
+            if (_tutorialPurchasePanel == null)
+                _tutorialPurchasePanel = GetComponentInChildren<TutorialPurchasePanelView>(true);
+
             ApplyCurrentLayout(force: true);
         }
 
@@ -61,8 +65,20 @@ namespace MagicArcher.UI
             _isLandscape = landscape;
             ApplyScaler(landscape);
             ApplyUi(landscape);
+            ApplyTutorialPurchasePanelLayout(landscape);
             _tutorialOverlay?.RefreshActiveHint();
             LayoutChanged?.Invoke(landscape);
+        }
+
+        void ApplyTutorialPurchasePanelLayout(bool landscape)
+        {
+            if (_tutorialPurchasePanel == null || !_tutorialPurchasePanel.gameObject.activeInHierarchy)
+                return;
+
+            if (landscape)
+                _tutorialPurchasePanel.ApplyHorizontalLayout();
+            else
+                _tutorialPurchasePanel.ApplyVerticalLayout();
         }
 
         void ApplyScaler(bool landscape)

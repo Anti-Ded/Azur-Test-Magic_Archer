@@ -15,9 +15,8 @@ using Zenject;
 
 
 namespace MagicArcher.Gameplay.Combat
-
 {
-
+    // Boss and regular orcs prewarm with startMoving=true and walk together from waypoint 0.
     public sealed class EnemyWaveController : MonoBehaviour
 
     {
@@ -107,11 +106,36 @@ namespace MagicArcher.Gameplay.Combat
 
             {
 
-                var position = EnemySpawnLayout.GetPrewarmPosition(_path, i, spacing);
+                var layoutIndex = EnemySpawnLayout.GetRegularPrewarmIndex(i);
+                var position = EnemySpawnLayout.GetPrewarmPosition(_path, layoutIndex, spacing);
 
                 SpawnQueuedOrc(prefab, position, true);
 
             }
+
+        }
+
+
+
+        public void PrewarmBoss(EnemyView fallbackPrefab)
+
+        {
+
+            if (_path == null)
+
+                return;
+
+
+
+            _pool?.Warmup(1);
+
+
+
+            var spacing = _regular != null ? _regular.SpawnSpacing : 1.5f;
+
+            var position = EnemySpawnLayout.GetBossPrewarmPosition(_path, spacing);
+
+            SpawnBoss(fallbackPrefab, position, true);
 
         }
 
@@ -270,67 +294,21 @@ namespace MagicArcher.Gameplay.Combat
 
 
         public void ActivateNextWalker()
-
         {
-
             if (_path == null)
-
                 return;
-
-
 
             while (_nextActivateIndex < _queue.Count)
-
             {
-
                 var orc = _queue[_nextActivateIndex++];
-
                 if (orc == null || !orc.IsAlive)
-
                     continue;
-
-
 
                 if (orc.Motor != null && !orc.Motor.IsMoving)
-
                     orc.Motor.Begin(_path);
 
-
-
                 return;
-
             }
-
-        }
-
-
-
-        public bool HasAliveRegularEnemies()
-
-        {
-
-            for (var i = 0; i < _queue.Count; i++)
-
-            {
-
-                var enemy = _queue[i];
-
-                if (enemy == null || !enemy.IsAlive || enemy.Health == null)
-
-                    continue;
-
-
-
-                if (!enemy.Health.IsBoss)
-
-                    return true;
-
-            }
-
-
-
-            return false;
-
         }
 
 

@@ -528,13 +528,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d723746f9edbb5046ba02eac530dc831, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _archerPrefab: {fileID: 2597416972443981881, guid: e3325ee03ce07f846b3c2138f44d94e9, type: 3}
-  _orcPrefab: {fileID: 8777918848310106290, guid: d7a404a14bc0c5646b873aab24786e6f, type: 3}
-  _projectilePrefab: {fileID: 8336681996169202335, guid: 4d5cad342a6b20445aa5bbdb0f074b02, type: 3}
   _projectilesRoot: {fileID: 181617454}
-  _coinHudTarget: {fileID: 0}
-  _coinFlyPrefab: {fileID: 0}
-  _coinFlyPoolRoot: {fileID: 0}
 --- !u!4 &769678921
 Transform:
   m_ObjectHideFlags: 0
@@ -928,10 +922,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 6201514608342575008, guid: e86e94c2769e6f94fb285a5803608261, type: 3}
-      propertyPath: m_RaycastTarget
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1002,7 +992,7 @@ MonoBehaviour:
   _landscapePosition: {x: 0.58, y: 19.51, z: -18.1}
   _landscapeEuler: {x: 69.254, y: 0, z: 0}
   _landscapeFov: 60
-  _portraitPosition: {x: 0.58, y: 21.5, z: -20.5}
+  _portraitPosition: {x: 0.58, y: 32.25, z: -23}
   _portraitEuler: {x: 69.254, y: 0, z: 0}
   _portraitFov: 64
 --- !u!1001 &6215891066700480433

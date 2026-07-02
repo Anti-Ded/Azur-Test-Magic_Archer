@@ -20,6 +20,16 @@ namespace MagicArcher.Gameplay.Enemies
             return start + direction.normalized * (index * spacing);
         }
 
+        public static Vector3 GetBossPrewarmPosition(EnemyPathView path, float spacing)
+        {
+            return GetPrewarmPosition(path, 0, spacing);
+        }
+
+        public static int GetRegularPrewarmIndex(int queueIndex)
+        {
+            return queueIndex + 1;
+        }
+
         public static Vector3 GetPrewarmPosition(EnemyPathView path, int index)
         {
             return GetPrewarmPosition(path, index, 1.5f);

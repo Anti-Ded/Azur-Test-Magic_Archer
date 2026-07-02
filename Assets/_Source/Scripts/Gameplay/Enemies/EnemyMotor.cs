@@ -42,6 +42,14 @@ namespace MagicArcher.Gameplay.Enemies
             _moving = path != null && path.WaypointCount > 0;
         }
 
+        public void Resume()
+        {
+            if (_path == null || _path.WaypointCount <= 0)
+                return;
+
+            _moving = true;
+        }
+
 
 
         public void Stop()
@@ -117,22 +125,30 @@ namespace MagicArcher.Gameplay.Enemies
             if (path == null || path.WaypointCount <= 1)
                 return 0;
 
-            var start = path.GetWaypointPosition(0);
-            var end = path.GetWaypointPosition(1);
-            var segment = end - start;
-            segment.y = 0f;
+            const float reachedThresholdSqr = 0.05f * 0.05f;
 
-            if (segment.sqrMagnitude < 0.0001f)
-                return 0;
+            for (var i = 0; i < path.WaypointCount - 1; i++)
+            {
+                var from = path.GetWaypointPosition(i);
+                var to = path.GetWaypointPosition(i + 1);
+                from.y = position.y;
+                to.y = position.y;
 
-            var offset = position - start;
-            offset.y = 0f;
-            var progress = Vector3.Dot(offset, segment.normalized);
+                var segment = to - from;
+                if (segment.sqrMagnitude < 0.0001f)
+                    continue;
 
-            if (progress <= 0.05f)
-                return 0;
+                var progress = Vector3.Dot(position - from, segment.normalized);
+                if (progress > segment.magnitude + 0.05f)
+                    continue;
 
-            return 1;
+                if ((position - to).sqrMagnitude <= reachedThresholdSqr)
+                    continue;
+
+                return i + 1;
+            }
+
+            return path.WaypointCount - 1;
         }
     }
 }

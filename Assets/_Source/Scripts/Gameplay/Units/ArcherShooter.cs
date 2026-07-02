@@ -15,11 +15,9 @@ namespace MagicArcher.Gameplay.Units
 
         CombatTargetRegistry _registry;
         ProjectilePool _projectilePool;
-        RegularUnitConfig _regular;
-        UpgradedUnitConfig _upgraded;
         IAudioService _audio;
         GamePhaseService _phases;
-        UnitTier _tier = UnitTier.Normal;
+        UnitConfigBase _config;
         float _cooldownTimer;
         ICombatTarget _reservedTarget;
 
@@ -29,22 +27,18 @@ namespace MagicArcher.Gameplay.Units
         void Construct(
             CombatTargetRegistry registry,
             ProjectilePool projectilePool,
-            RegularUnitConfig regular,
-            UpgradedUnitConfig upgraded,
             GamePhaseService phases,
             [Zenject.Inject(Optional = true)] IAudioService audio = null)
         {
             _registry = registry;
             _projectilePool = projectilePool;
-            _regular = regular;
-            _upgraded = upgraded;
             _phases = phases;
             _audio = audio;
         }
 
-        public void SetTier(UnitTier tier)
+        public void ApplyConfig(UnitConfigBase config)
         {
-            _tier = tier;
+            _config = config;
         }
 
         void OnDisable()
@@ -75,12 +69,7 @@ namespace MagicArcher.Gameplay.Units
             _cooldownTimer = GetCooldown();
         }
 
-        UnitConfigBase GetActiveConfig()
-        {
-            return _tier == UnitTier.Upgraded
-                ? _upgraded != null ? _upgraded : _regular
-                : _regular;
-        }
+        UnitConfigBase GetActiveConfig() => _config;
 
         void UpdateReservation(ICombatTarget target)
         {
@@ -118,20 +107,23 @@ namespace MagicArcher.Gameplay.Units
             if (config != null)
                 return config.AttackCooldown;
 
-            return _tier == UnitTier.Upgraded
-                ? GameConstants.UpgradedArcherCooldown
-                : GameConstants.NormalArcherCooldown;
+            return GameConstants.NormalArcherCooldown;
         }
 
         float GetDamage()
         {
             var config = GetActiveConfig();
-            return config != null ? config.Damage : _tier == UnitTier.Upgraded ? 100f : 50f;
+            return config != null ? config.Damage : 50f;
         }
 
         void Fire(ICombatTarget target)
         {
-            _projectilePool.Launch(GetMuzzlePosition(), target, GetDamage());
+            var config = GetActiveConfig();
+            var projectilePrefab = config != null ? config.ProjectilePrefab : null;
+            if (projectilePrefab == null)
+                return;
+
+            _projectilePool.Launch(projectilePrefab, GetMuzzlePosition(), target, GetDamage());
             _audio?.PlayBowRelease();
 
             if (_animator != null)

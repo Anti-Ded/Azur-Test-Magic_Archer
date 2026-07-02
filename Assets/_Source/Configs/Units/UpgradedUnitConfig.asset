@@ -12,8 +12,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2f95f3d0c7e5168bf4f2d9e6c837051, type: 3}
   m_Name: UpgradedUnitConfig
   m_EditorClassIdentifier: 
-  _prefab: {fileID: 2597416972443981881, guid: e3325ee03ce07f846b3c2138f44d94e9, type: 3}
-  _maxHealth: 150
-  _damage: 50
-  _attackCooldown: 1.1
+  _prefab: {fileID: 2597416972443981881, guid: 2996261064228dd4cbf2a14c47552283, type: 3}
+  _maxHealth: 10
+  _projectilePrefab: {fileID: 8336681996169202335, guid: 4d5cad342a6b20445aa5bbdb0f074b02, type: 3}
+  _damage: 100
+  _attackCooldown: 2.5
   _attackRange: 25
+  _mergeChildren:
+  - {fileID: 11400000, guid: 0e1413455cdd46d4e99c416c5152d32a, type: 2}
+  - {fileID: 11400000, guid: 0e1413455cdd46d4e99c416c5152d32a, type: 2}

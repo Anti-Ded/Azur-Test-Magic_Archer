@@ -1,9 +1,10 @@
 using System;
 using MagicArcher.Core.Audio;
-using MagicArcher.Gameplay.Combat;
+using MagicArcher.Core.Config;
 using MagicArcher.Gameplay.Economy;
 using MagicArcher.Gameplay.Grid;
 using MagicArcher.Gameplay.Level;
+using MagicArcher.Gameplay.Units;
 using UnityEngine;
 using Zenject;
 
@@ -14,7 +15,7 @@ namespace MagicArcher.Gameplay.Units
         readonly DiContainer _container;
         readonly LevelRoot _level;
         readonly IGridService _grid;
-        readonly CombatSceneRefs _refs;
+        readonly RegularUnitConfig _regularUnit;
         readonly IEconomyService _economy;
         readonly IAudioService _audio;
 
@@ -29,14 +30,14 @@ namespace MagicArcher.Gameplay.Units
             DiContainer container,
             LevelRoot level,
             IGridService grid,
-            CombatSceneRefs refs,
+            RegularUnitConfig regularUnit,
             IEconomyService economy,
             [Inject(Optional = true)] IAudioService audio = null)
         {
             _container = container;
             _level = level;
             _grid = grid;
-            _refs = refs;
+            _regularUnit = regularUnit;
             _economy = economy;
             _audio = audio;
         }
@@ -53,7 +54,8 @@ namespace MagicArcher.Gameplay.Units
 
         public bool TryPurchase()
         {
-            if (_refs.ArcherPrefab == null || _level.UnitsRoot == null)
+            var archerPrefab = _regularUnit != null ? _regularUnit.UnitViewPrefab : null;
+            if (archerPrefab == null || _level.UnitsRoot == null)
                 return false;
 
             if (!_grid.TryGetEmptySlot(out var slot))
@@ -63,7 +65,7 @@ namespace MagicArcher.Gameplay.Units
                 return false;
 
             var archer = _container.InstantiatePrefabForComponent<UnitView>(
-                _refs.ArcherPrefab,
+                archerPrefab,
                 _level.UnitsRoot);
 
             if (!_grid.TryPlace(slot.X, slot.Y, archer))
@@ -73,7 +75,7 @@ namespace MagicArcher.Gameplay.Units
                 return false;
             }
 
-            archer.SetUpgraded(false);
+            archer.ApplyConfig(_regularUnit);
             _audio?.PlayUnitBuy();
             UnitPurchased?.Invoke(archer);
             return true;

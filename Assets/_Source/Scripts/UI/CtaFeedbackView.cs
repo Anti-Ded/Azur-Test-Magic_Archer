@@ -30,6 +30,7 @@ namespace MagicArcher.UI
             KillSequence();
             _label.text = message;
             gameObject.SetActive(true);
+            transform.SetAsLastSibling();
             _canvasGroup.alpha = 0f;
             _panel.localScale = Vector3.one * 0.92f;
 

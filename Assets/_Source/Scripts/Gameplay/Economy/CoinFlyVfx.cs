@@ -12,6 +12,8 @@ namespace MagicArcher.Gameplay.Economy
         RectTransform _rect;
         Tween _tween;
 
+        public bool IsAvailable => !gameObject.activeSelf;
+
         void Awake()
         {
             _rect = transform as RectTransform;
@@ -33,7 +35,7 @@ namespace MagicArcher.Gameplay.Economy
                 return;
             }
 
-            KillTween();
+            Stop();
             _rect.anchoredPosition = startLocal;
             gameObject.SetActive(true);
 

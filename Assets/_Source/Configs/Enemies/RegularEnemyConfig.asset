@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _prefab: {fileID: 8791582247231813958, guid: d7a404a14bc0c5646b873aab24786e6f, type: 3}
   _maxHealth: 100
-  _gridContactDamage: 50
-  _moveSpeed: 1.6
+  _attackTriggerRadius: 1.5
+  _attackDuration: 2.125
+  _attackHitNormalizedTime: 0.5
+  _moveSpeed: 2.5
   _spawnSpacing: 1.5
   _introQueueCount: 16
+  _coinReward: 10
   _deathAnimationFrames: 170
   _deathAnimationFps: 60
   _healthBarScale: 1

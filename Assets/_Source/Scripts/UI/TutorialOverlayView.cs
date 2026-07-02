@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using DG.Tweening;
+using MagicArcher.Gameplay.Units;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,27 +16,32 @@ namespace MagicArcher.UI
         [SerializeField] Vector2 _handEnterPadding = new Vector2(100f, 100f);
         [SerializeField] float _handEnterDuration = 1f;
         [SerializeField] float _mergeDragDuration = 0.9f;
+        [SerializeField] float _mergeGhostDragHeight = 0.35f;
+        [SerializeField] MergeDragGhostView _mergeGhostPrefab;
 
         Tween _handTween;
         Sequence _handSequence;
         RectTransform _pointAtTarget;
         Vector3? _worldPointTarget;
         bool _mergeDragActive;
+        bool _useDimmer = true;
         Coroutine _repositionRoutine;
+        MergeDragGhostView _mergeGhost;
+        Vector2 _mergeSourceLocal;
+        Vector2 _mergeTargetLocal;
+        Vector3 _mergeSourceWorld;
+        Vector3 _mergeTargetWorld;
 
-        public void Show(RectTransform pointAt)
+        public void Show(RectTransform pointAt, bool useDimmer = true)
         {
             gameObject.SetActive(true);
             StopHandMotion();
             _pointAtTarget = pointAt;
             _worldPointTarget = null;
             _mergeDragActive = false;
+            _useDimmer = useDimmer;
 
-            if (_dimmer != null)
-            {
-                _dimmer.raycastTarget = true;
-                _dimmer.transform.SetAsFirstSibling();
-            }
+            SetDimmerRaycast(useDimmer);
 
             if (_hand == null)
                 return;
@@ -57,12 +63,9 @@ namespace MagicArcher.UI
             _pointAtTarget = null;
             _worldPointTarget = worldPosition;
             _mergeDragActive = false;
+            _useDimmer = false;
 
-            if (_dimmer != null)
-            {
-                _dimmer.raycastTarget = false;
-                _dimmer.transform.SetAsFirstSibling();
-            }
+            SetDimmerRaycast(false);
 
             if (_hand == null)
                 return;
@@ -77,19 +80,16 @@ namespace MagicArcher.UI
             AnimateHandTo(localPoint + _uiTargetOffset, StartHandPulse);
         }
 
-        public void PlayMergeDragHint(Vector3 sourceWorld, Vector3 targetWorld)
+        public void PlayMergeDragHint(UnitView sourceUnit, Vector3 sourceWorld, Vector3 targetWorld)
         {
             gameObject.SetActive(true);
             StopHandMotion();
             _pointAtTarget = null;
             _worldPointTarget = null;
             _mergeDragActive = true;
+            _useDimmer = false;
 
-            if (_dimmer != null)
-            {
-                _dimmer.raycastTarget = false;
-                _dimmer.transform.SetAsFirstSibling();
-            }
+            SetDimmerRaycast(false);
 
             if (_hand == null)
                 return;
@@ -107,7 +107,7 @@ namespace MagicArcher.UI
 
             sourceLocal += new Vector2(24f, -24f);
             targetLocal += new Vector2(24f, -24f);
-            AnimateHandTo(sourceLocal, () => StartMergeDragLoop(sourceLocal, targetLocal));
+            AnimateHandTo(sourceLocal, () => StartMergeDragLoop(sourceUnit, sourceLocal, targetLocal, sourceWorld, targetWorld));
         }
 
         public void Hide()
@@ -127,7 +127,7 @@ namespace MagicArcher.UI
 
             if (_pointAtTarget != null)
             {
-                Show(_pointAtTarget);
+                Show(_pointAtTarget, _useDimmer);
                 return;
             }
 
@@ -136,6 +136,15 @@ namespace MagicArcher.UI
 
             if (_worldPointTarget.HasValue)
                 ShowAtWorldPosition(_worldPointTarget.Value);
+        }
+
+        void SetDimmerRaycast(bool blockInput)
+        {
+            if (_dimmer == null)
+                return;
+
+            _dimmer.raycastTarget = blockInput;
+            _dimmer.transform.SetAsFirstSibling();
         }
 
         void AnimateHandToUiTarget(RectTransform target)
@@ -172,18 +181,79 @@ namespace MagicArcher.UI
                 -rect.height * 0.5f - _handEnterPadding.y);
         }
 
-        void StartMergeDragLoop(Vector2 sourceLocal, Vector2 targetLocal)
+        void StartMergeDragLoop(
+            UnitView sourceUnit,
+            Vector2 sourceLocal,
+            Vector2 targetLocal,
+            Vector3 sourceWorld,
+            Vector3 targetWorld)
         {
             if (_hand == null)
                 return;
 
+            _mergeSourceLocal = sourceLocal;
+            _mergeTargetLocal = targetLocal;
+            _mergeSourceWorld = sourceWorld;
+            _mergeTargetWorld = targetWorld;
+
             _hand.anchoredPosition = sourceLocal;
             _handSequence = DOTween.Sequence();
-            _handSequence.Append(_hand.DOAnchorPos(targetLocal, _mergeDragDuration).SetEase(Ease.InOutSine));
+            _handSequence.AppendCallback(() => ShowMergeGhost(sourceUnit, sourceWorld));
+            _handSequence.Append(
+                _hand.DOAnchorPos(targetLocal, _mergeDragDuration)
+                    .SetEase(Ease.InOutSine)
+                    .OnUpdate(UpdateMergeGhostFromHand));
+            _handSequence.AppendCallback(HideMergeGhost);
             _handSequence.AppendInterval(0.15f);
             _handSequence.Append(_hand.DOAnchorPos(sourceLocal, _mergeDragDuration * 0.75f).SetEase(Ease.InOutSine));
             _handSequence.AppendInterval(0.15f);
             _handSequence.SetLoops(-1, LoopType.Restart);
+        }
+
+        void ShowMergeGhost(UnitView sourceUnit, Vector3 sourceWorld)
+        {
+            HideMergeGhost();
+            if (sourceUnit == null || _mergeGhostPrefab == null)
+                return;
+
+            _mergeGhost = Instantiate(_mergeGhostPrefab);
+            _mergeGhost.name = "MergeDragGhost";
+            _mergeGhost.AlignFrom(sourceUnit);
+            _mergeGhost.SetPosition(sourceWorld, _mergeGhostDragHeight);
+        }
+
+        void UpdateMergeGhostFromHand()
+        {
+            if (_mergeGhost == null || _hand == null)
+                return;
+
+            var progress = GetHandDragProgress(_mergeSourceLocal, _mergeTargetLocal, _hand.anchoredPosition);
+            var worldPosition = Vector3.Lerp(_mergeSourceWorld, _mergeTargetWorld, progress);
+            SetMergeGhostWorldPosition(worldPosition);
+        }
+
+        void SetMergeGhostWorldPosition(Vector3 worldPosition)
+        {
+            _mergeGhost?.SetPosition(worldPosition, _mergeGhostDragHeight);
+        }
+
+        static float GetHandDragProgress(Vector2 sourceLocal, Vector2 targetLocal, Vector2 currentLocal)
+        {
+            var total = targetLocal - sourceLocal;
+            if (total.sqrMagnitude < 0.0001f)
+                return 0f;
+
+            var current = currentLocal - sourceLocal;
+            return Mathf.Clamp01(Vector2.Dot(current, total) / total.sqrMagnitude);
+        }
+
+        void HideMergeGhost()
+        {
+            if (_mergeGhost == null)
+                return;
+
+            Destroy(_mergeGhost.gameObject);
+            _mergeGhost = null;
         }
 
         void ScheduleReposition()
@@ -290,6 +360,7 @@ namespace MagicArcher.UI
 
             _handTween = null;
             _handSequence = null;
+            HideMergeGhost();
         }
 
         void OnDestroy()

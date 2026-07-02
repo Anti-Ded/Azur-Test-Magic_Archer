@@ -14,12 +14,17 @@ namespace MagicArcher.Core.Config
 
         [Header("Combat")]
         [SerializeField] float _maxHealth = 100f;
-        [SerializeField] float _gridContactDamage = 50f;
+        [SerializeField] float _attackTriggerRadius = 1.8f;
+        [SerializeField] float _attackDuration = 2.125f;
+        [SerializeField] float _attackHitNormalizedTime = 0.5f;
         [SerializeField] float _moveSpeed = 1.6f;
 
         [Header("Wave")]
         [SerializeField] float _spawnSpacing = 1.5f;
         [SerializeField] int _introQueueCount = 16;
+
+        [Header("Reward")]
+        [SerializeField] int _coinReward = 5;
 
         [Header("Death")]
         [SerializeField] int _deathAnimationFrames = 170;
@@ -30,10 +35,13 @@ namespace MagicArcher.Core.Config
 
         public EnemyView Prefab => _prefab;
         public float MaxHealth => Mathf.Max(1f, _maxHealth);
-        public float GridContactDamage => Mathf.Max(0f, _gridContactDamage);
+        public float AttackTriggerRadius => Mathf.Max(0.1f, _attackTriggerRadius);
+        public float AttackDuration => Mathf.Max(0.05f, _attackDuration);
+        public float AttackHitNormalizedTime => Mathf.Clamp01(_attackHitNormalizedTime);
         public float MoveSpeed => _moveSpeed;
         public float SpawnSpacing => _spawnSpacing;
         public int IntroQueueCount => Mathf.Max(1, _introQueueCount);
+        public int CoinReward => Mathf.Max(0, _coinReward);
         public float DeathReturnDelay =>
             _deathAnimationFps <= 0f ? 0f : _deathAnimationFrames / _deathAnimationFps;
 

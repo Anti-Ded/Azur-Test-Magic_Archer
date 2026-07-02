@@ -11,6 +11,7 @@ namespace MagicArcher.UI
         RectTransform _canvasRect;
         Canvas _canvas;
         readonly List<HealthBarPresenter> _presenters = new();
+        readonly List<HealthBarUiView> _inactiveViews = new();
         Camera _camera;
 
         public void Configure(RectTransform container, HealthBarUiView prefab, Canvas canvas)
@@ -36,11 +37,14 @@ namespace MagicArcher.UI
             if (!_presenters.Contains(presenter))
                 _presenters.Add(presenter);
 
-            if (presenter.View == null && _prefab != null && _container != null)
+            if (presenter.View == null)
             {
-                var view = Object.Instantiate(_prefab, _container);
-                view.ApplyProfile(presenter.Profile);
-                presenter.View = view;
+                var view = RentView();
+                if (view != null)
+                {
+                    view.ApplyProfile(presenter.Profile);
+                    presenter.View = view;
+                }
             }
 
             RefreshPresenter(presenter);
@@ -52,13 +56,19 @@ namespace MagicArcher.UI
                 return;
 
             if (presenter.View != null)
-            {
-                presenter.View.SetVisible(false);
-                Object.Destroy(presenter.View.gameObject);
-                presenter.View = null;
-            }
+                ReturnToPool(presenter.View);
 
+            presenter.View = null;
             _presenters.Remove(presenter);
+        }
+
+        public void ReleaseView(HealthBarPresenter presenter)
+        {
+            if (presenter == null || presenter.View == null)
+                return;
+
+            ReturnToPool(presenter.View);
+            presenter.View = null;
         }
 
         public void RefreshPresenter(HealthBarPresenter presenter)
@@ -87,11 +97,45 @@ namespace MagicArcher.UI
             for (var i = _presenters.Count - 1; i >= 0; i--)
             {
                 var presenter = _presenters[i];
-                if (presenter == null || !presenter.isActiveAndEnabled)
+                if (presenter == null || !presenter.isActiveAndEnabled || presenter.View == null)
                     continue;
 
                 UpdatePosition(presenter, overlay);
             }
+        }
+
+        HealthBarUiView RentView()
+        {
+            for (var i = _inactiveViews.Count - 1; i >= 0; i--)
+            {
+                var view = _inactiveViews[i];
+                if (view == null)
+                {
+                    _inactiveViews.RemoveAt(i);
+                    continue;
+                }
+
+                _inactiveViews.RemoveAt(i);
+                view.gameObject.SetActive(true);
+                return view;
+            }
+
+            if (_prefab == null || _container == null)
+                return null;
+
+            return Object.Instantiate(_prefab, _container);
+        }
+
+        void ReturnToPool(HealthBarUiView view)
+        {
+            if (view == null)
+                return;
+
+            view.SetVisible(false);
+            view.transform.SetParent(_container, false);
+
+            if (!_inactiveViews.Contains(view))
+                _inactiveViews.Add(view);
         }
 
         void UpdatePosition(HealthBarPresenter presenter, bool overlay)

@@ -53,8 +53,9 @@ namespace MagicArcher.Gameplay.Flow
             ResolveOverlay()?.Hide();
         }
 
-        bool TryFindMergeTargets(out Vector3 sourcePosition, out Vector3 targetPosition)
+        bool TryFindMergeTargets(out UnitView sourceUnit, out Vector3 sourcePosition, out Vector3 targetPosition)
         {
+            sourceUnit = null;
             sourcePosition = default;
             targetPosition = default;
             UnitView first = null;
@@ -64,7 +65,7 @@ namespace MagicArcher.Gameplay.Flow
             {
                 for (var x = 0; x < _grid.Width; x++)
                 {
-                    if (!_grid.TryGetUnit(x, y, out var unit) || unit.IsUpgraded)
+                    if (!_grid.TryGetUnit(x, y, out var unit) || !unit.CanMerge)
                         continue;
 
                     if (first == null)
@@ -86,6 +87,7 @@ namespace MagicArcher.Gameplay.Flow
             if (second == null)
                 second = first;
 
+            sourceUnit = first;
             sourcePosition = first.transform.position;
             targetPosition = second.transform.position;
             return true;
@@ -97,13 +99,13 @@ namespace MagicArcher.Gameplay.Flow
             if (overlay == null)
                 return;
 
-            if (!TryFindMergeTargets(out var sourcePosition, out var targetPosition))
+            if (!TryFindMergeTargets(out var sourceUnit, out var sourcePosition, out var targetPosition))
             {
                 overlay.Show(null);
                 return;
             }
 
-            overlay.PlayMergeDragHint(sourcePosition, targetPosition);
+            overlay.PlayMergeDragHint(sourceUnit, sourcePosition, targetPosition);
         }
 
         void OnUnitMerged(UnitView _)

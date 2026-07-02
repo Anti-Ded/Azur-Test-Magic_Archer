@@ -9,16 +9,12 @@ namespace MagicArcher.Gameplay.Flow
 {
     public sealed class TutorialPurchaseDirector : MonoBehaviour
     {
-        const int TutorialBuyButtonSiblingIndex = 1;
-
         UnitPurchaseService _purchase;
         CombatUiRefs _ui;
         GamePhaseService _phases;
 
-        BuyUnitButtonView _activeBuyButton;
-        Transform _buyButtonOriginalParent;
-        int _buyButtonOriginalSiblingIndex;
-        bool _buyButtonPlacementSaved;
+        TutorialPurchasePanelView _panel;
+        BuyUnitButtonView _mainBuyButton;
 
         [Inject]
         void Construct(
@@ -39,44 +35,51 @@ namespace MagicArcher.Gameplay.Flow
                 return;
             }
 
-            var buyButton = ResolveBuyButton();
-            var overlay = ResolveOverlay();
-            if (buyButton == null || overlay == null)
+            _panel = ResolvePanel();
+            if (_panel == null || _panel.BuyButton == null)
             {
-                Debug.LogError("TutorialPurchaseDirector: UI references are missing. Run Magic Archer → Setup Combat Scene.");
+                Debug.LogError("TutorialPurchaseDirector: tutorial purchase panel is missing.");
                 return;
             }
 
-            _activeBuyButton = buyButton;
+            _mainBuyButton = ResolveMainBuyButton();
+            _mainBuyButton?.Hide();
+
             _purchase.SetCost(GameConstants.TutorialBuyUnitCost);
-            buyButton.Clicked += OnBuyClicked;
-            buyButton.Show(GameConstants.TutorialBuyUnitCost);
+            _panel.Show(GameConstants.TutorialBuyUnitCost);
+            _panel.BuyButton.Clicked += OnBuyClicked;
 
-            ReparentBuyButtonForTutorial(buyButton, overlay);
-
-            var buttonRect = buyButton.transform as RectTransform;
-            overlay.Show(buttonRect);
+            var overlay = ResolveOverlay();
+            overlay?.Show(_panel.BuyButtonRect, useDimmer: false);
         }
 
-        BuyUnitButtonView ResolveBuyButton()
+        public void End()
+        {
+            if (_panel != null && _panel.BuyButton != null)
+                _panel.BuyButton.Clicked -= OnBuyClicked;
+
+            _panel?.Hide();
+            _panel = null;
+
+            ResolveOverlay()?.Hide();
+            _mainBuyButton?.Hide();
+            _mainBuyButton = null;
+        }
+
+        TutorialPurchasePanelView ResolvePanel()
+        {
+            if (_ui != null && _ui.TutorialPurchasePanel != null)
+                return _ui.TutorialPurchasePanel;
+
+            return Object.FindFirstObjectByType<TutorialPurchasePanelView>(FindObjectsInactive.Include);
+        }
+
+        BuyUnitButtonView ResolveMainBuyButton()
         {
             if (_ui != null && _ui.BuyUnitButton != null)
                 return _ui.BuyUnitButton;
 
-            var buttons = Object.FindObjectsByType<BuyUnitButtonView>(
-                FindObjectsInactive.Include,
-                FindObjectsSortMode.None);
-
-            foreach (var button in buttons)
-            {
-                if (button.transform.parent != null &&
-                    button.transform.parent.name == "TutorialOverlay")
-                    continue;
-
-                return button;
-            }
-
-            return null;
+            return Object.FindFirstObjectByType<BuyUnitButtonView>(FindObjectsInactive.Include);
         }
 
         TutorialOverlayView ResolveOverlay()
@@ -85,50 +88,6 @@ namespace MagicArcher.Gameplay.Flow
                 return _ui.TutorialOverlay;
 
             return Object.FindFirstObjectByType<TutorialOverlayView>(FindObjectsInactive.Include);
-        }
-
-        public void End()
-        {
-            var buyButton = _activeBuyButton != null ? _activeBuyButton : ResolveBuyButton();
-            var overlay = ResolveOverlay();
-
-            if (buyButton != null)
-            {
-                buyButton.Clicked -= OnBuyClicked;
-                buyButton.Hide();
-                RestoreBuyButtonParent(buyButton);
-            }
-
-            _activeBuyButton = null;
-            overlay?.Hide();
-        }
-
-        void ReparentBuyButtonForTutorial(BuyUnitButtonView buyButton, TutorialOverlayView overlay)
-        {
-            if (buyButton == null || overlay == null)
-                return;
-
-            var buttonTransform = buyButton.transform;
-            if (!_buyButtonPlacementSaved)
-            {
-                _buyButtonOriginalParent = buttonTransform.parent;
-                _buyButtonOriginalSiblingIndex = buttonTransform.GetSiblingIndex();
-                _buyButtonPlacementSaved = true;
-            }
-
-            buttonTransform.SetParent(overlay.transform, true);
-            buttonTransform.SetSiblingIndex(TutorialBuyButtonSiblingIndex);
-        }
-
-        void RestoreBuyButtonParent(BuyUnitButtonView buyButton)
-        {
-            if (buyButton == null || !_buyButtonPlacementSaved || _buyButtonOriginalParent == null)
-                return;
-
-            var buttonTransform = buyButton.transform;
-            buttonTransform.SetParent(_buyButtonOriginalParent, true);
-            buttonTransform.SetSiblingIndex(_buyButtonOriginalSiblingIndex);
-            _buyButtonPlacementSaved = false;
         }
 
         void OnBuyClicked()

@@ -48,6 +48,21 @@ namespace MagicArcher.UI
             };
         }
 
+        public static RectTransformLayoutPreset From(RectTransform rect)
+        {
+            if (rect == null)
+                return default;
+
+            return new RectTransformLayoutPreset
+            {
+                AnchorMin = rect.anchorMin,
+                AnchorMax = rect.anchorMax,
+                Pivot = rect.pivot,
+                AnchoredPosition = rect.anchoredPosition,
+                SizeDelta = rect.sizeDelta
+            };
+        }
+
         public void Apply(RectTransform rect)
         {
             if (rect == null)

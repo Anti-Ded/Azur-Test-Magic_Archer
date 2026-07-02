@@ -9,9 +9,12 @@ namespace MagicArcher.UI
         [SerializeField] Text _titleLabel;
         [SerializeField] Text _hintLabel;
 
+        bool _usesChildVisuals;
+
         void Awake()
         {
-            Hide();
+            _usesChildVisuals = _root == null || _root == gameObject;
+            SetVisualsVisible(false);
         }
 
         public void ShowVictory()
@@ -26,8 +29,9 @@ namespace MagicArcher.UI
 
         void Show(string title, string hint)
         {
-            if (_root != null)
-                _root.SetActive(true);
+            gameObject.SetActive(true);
+            transform.SetAsLastSibling();
+            SetVisualsVisible(true);
 
             if (_titleLabel != null)
                 _titleLabel.text = title;
@@ -38,8 +42,19 @@ namespace MagicArcher.UI
 
         public void Hide()
         {
-            if (_root != null)
-                _root.SetActive(false);
+            SetVisualsVisible(false);
+        }
+
+        void SetVisualsVisible(bool visible)
+        {
+            if (!_usesChildVisuals && _root != null)
+            {
+                _root.SetActive(visible);
+                return;
+            }
+
+            for (var i = 0; i < transform.childCount; i++)
+                transform.GetChild(i).gameObject.SetActive(visible);
         }
     }
 }

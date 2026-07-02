@@ -70,7 +70,7 @@ namespace MagicArcher.Gameplay.Units
             if (!_grid.TryGetSlotFromWorld(worldPoint, out var slot))
                 return;
 
-            if (!_grid.TryGetUnit(slot.X, slot.Y, out var unit) || unit.IsUpgraded)
+            if (!_grid.TryGetUnit(slot.X, slot.Y, out var unit) || !unit.CanMerge)
                 return;
 
             _dragged = unit;

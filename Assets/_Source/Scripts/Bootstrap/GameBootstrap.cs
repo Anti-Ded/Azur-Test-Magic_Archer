@@ -23,7 +23,10 @@ namespace MagicArcher.Bootstrap
                 return;
 
             _stateMachine.Tick();
+        }
 
+        void LateUpdate()
+        {
             if (_ctaService == null)
                 return;
 
